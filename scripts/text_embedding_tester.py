@@ -1,6 +1,7 @@
+import json
 import pandas as pd
-from transformers import BertTokenizer, BertModel
 
+'''
 docs = [["The Aviator has been tipped by UK bookmakers as the favourite to win the best film award at this years Oscars. "
          "Ray star Jamie Foxx is clear favourite in the best actor category while Million Dollar Babys Hilary Swank is tipped to win the best actress prize. "
          "Bookmakers predict Cate Blanchett will be named best supporting actress."],
@@ -25,5 +26,13 @@ for doc in docs:
     cls_embedding = last_hidden_state[:, 0, :].detach().numpy()
 
     print("Break point.")
+'''
 
-# df = pd.read_csv('/home/eric/Eric/PhD/ResearchCode/gnn/data/raw_data/csvs/ten_newsgroups.csv')
+text_embeddings_file_name = '/home/eric/Eric/PhD/ResearchCode/gnn/data/embeddings/ten_newsgroups_text_embeddings.json'
+
+with open(text_embeddings_file_name) as f:
+    d = json.load(f)
+
+text_embeddings_df = pd.DataFrame.from_dict(d)
+
+print("Break point.")

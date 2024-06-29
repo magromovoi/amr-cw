@@ -5,13 +5,23 @@ import networkx as nx
 import os.path as osp
 
 from torch_geometric.data import Dataset, Data
-from ten_newsgroups_graph_utils import find_graph_info, find_indices
+from bbc_sports_graph_utils import find_graph_info, find_indices
 
 
-class NewsGroupDataset(Dataset):
+class BBCSportsDataset(Dataset):
     def __init__(self, root, transform=None, pre_transform=None, pre_filter=None, test=False):
-        self._labels = ["business", "entertainment", "food", "graphics", "historical",
-                        "medical", "politics", "space", "sport", "technologie"]
+        self._labels = ['athletics', 'cricket', 'football', 'rugby', 'tennis']
+        self.test_indices = [[0, 9],
+                             [0, 12],
+                             [0, 26],
+                             [0, 14],
+                             [0, 9]]
+
+        self.train_indices = [[10, 100],
+                              [13, 123],
+                              [27, 264],
+                              [15, 146],
+                              [10, 99]]
         self.test = test
 
         super().__init__(root, transform, pre_transform, pre_filter)
@@ -22,13 +32,13 @@ class NewsGroupDataset(Dataset):
         raw_file_names_temp = []
 
         if self.test:
-            for i in self._labels:
-                for j in range(1, 11):
+            for i_index, i in enumerate(self._labels):
+                for j in range(self.test_indices[i_index][0], self.test_indices[i_index][1] + 1):
                     raw_file_names_temp.append(i + "_test_graph_" + str(j) + ".gml")
 
         else:
-            for i in self._labels:
-                for j in range(11, 101):
+            for i_index, i in enumerate(self._labels):
+                for j in range(self.train_indices[i_index][0], self.train_indices[i_index][1] + 1):
                     raw_file_names_temp.append(i + "_train_graph_" + str(j) + ".gml")
 
         return raw_file_names_temp
@@ -39,11 +49,11 @@ class NewsGroupDataset(Dataset):
         processed_file_names_temp = []
 
         if self.test:
-            for i in range(0, 100):
+            for i in range(0, 75):
                 processed_file_names_temp.append("test_data_" + str(i) + ".pt")
 
         else:
-            for i in range(0, 900):
+            for i in range(0, 662):
                 processed_file_names_temp.append("train_data_" + str(i) + ".pt")
 
         return processed_file_names_temp
@@ -90,4 +100,4 @@ class NewsGroupDataset(Dataset):
         else:
             data = torch.load(osp.join(self.processed_dir, f'train_data_{idx}.pt'))
 
-        return data, idx
+        return data

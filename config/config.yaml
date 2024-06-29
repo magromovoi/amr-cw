@@ -8,3 +8,7 @@ ten_newsgroups_raw_texts_prefix: 'data/raw_data/texts/ten_newsgroups_texts'
 bbcsport_raw_texts_prefix: 'data/raw_data/texts/bbcsport_texts'
 
 raw_texts_csv_prefix: 'data/raw_data/csvs'
+
+saved_models_prefix: 'saved_models'
+
+embeddings_prefix: 'data/embeddings'
