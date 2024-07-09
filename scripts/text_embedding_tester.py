@@ -1,5 +1,8 @@
+import re
 import json
 import pandas as pd
+from graph_dataset import GraphDataset
+from ten_newsgroups_dataset import NewsGroupDataset
 
 '''
 docs = [["The Aviator has been tipped by UK bookmakers as the favourite to win the best film award at this years Oscars. "
@@ -26,9 +29,44 @@ for doc in docs:
     cls_embedding = last_hidden_state[:, 0, :].detach().numpy()
 
     print("Break point.")
+
+
+text_embeddings_file_name = '/home/eric/Eric/PhD/Research Code/gnn/data/embeddings/ten_newsgroups_text_embeddings.json'
+
+with open(text_embeddings_file_name) as f:
+    d = json.load(f)
+
+text_embeddings_df = pd.DataFrame.from_dict(d)
+
+print("Break point.")
+
+GraphDataset(root='/home/eric/Eric/PhD/Research Code/gnn/data/datasets/ten_newsgroups_graphs_dataset', labels=['business', 'entertainment', 'food', 'graphics', 'historical', 'medical', 'politics', 'space', 'sport', 'technologie'],
+             dataset='ten_newsgroups')
+
+class_names = ['business', 'entertainment', 'food', 'graphics', 'historical', 'medical', 'politics', 'space', 'sport', 'technologie']
+
+# Make a regex that matches if any of our regexes match.
+# combined = "(" + ")|(".join(regexes) + ")"
+
+index_pattern = fr"({"|".join(class_names)})_(train|test)_graph_([0-9])*"
+
+print("Break point.")
+
+# index_pattern = fr"{class_name}_post_(train|test)_([0-9])*"
+
+
+if re.match(combined, mystring):
+    print "Some regex matched!"
 '''
 
-text_embeddings_file_name = '/home/eric/Eric/PhD/ResearchCode/gnn/data/embeddings/ten_newsgroups_text_embeddings.json'
+graph_embeddings_file_name = '/home/eric/Eric/PhD/Research Code/gnn/data/embeddings/ten_newsgroups_graph_embeddings.json'
+
+with open(graph_embeddings_file_name) as f:
+    d = json.load(f)
+
+graph_embeddings_df = pd.DataFrame.from_dict(d)
+
+text_embeddings_file_name = '/home/eric/Eric/PhD/Research Code/gnn/data/embeddings/ten_newsgroups_text_embeddings.json'
 
 with open(text_embeddings_file_name) as f:
     d = json.load(f)

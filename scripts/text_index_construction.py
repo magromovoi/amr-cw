@@ -2,11 +2,6 @@ import os
 import re
 import shutil
 import pandas as pd
-from itertools import chain
-
-
-def flatten_chain(matrix):
-    return list(chain.from_iterable(matrix))
 
 
 def construct_text_indices(dataset, classes, raw_texts_prefix, raw_texts_csv_prefix):
@@ -50,4 +45,3 @@ def construct_text_indices(dataset, classes, raw_texts_prefix, raw_texts_csv_pre
 
     texts_df.to_csv(texts_df_file_name, index=False)
     shutil.move(texts_df_file_name, texts_df_file_path)
-

@@ -165,8 +165,6 @@ def get_text_embeddings(dataset, raw_texts_csv_prefix, embeddings_prefix, model_
         d['split'].extend(np.array(texts_test_df.split.iloc[data['idx'].to(device).cpu().detach().numpy()]).tolist())
         d['target'].extend(np.array(texts_test_df.target.iloc[data['idx'].to(device).cpu().detach().numpy()]).tolist())
 
-    print("Break point.")
-
     embeddings_file_name = f'{dataset}_text_embeddings.json'
 
     with open(embeddings_file_name, 'w') as f:
