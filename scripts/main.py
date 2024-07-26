@@ -101,7 +101,7 @@ def do_operations(root, config, dataset, operation):
                             str(root) + '/' + config['bbcsport_graphs_index_prefix'],
                             str(root) + '/' + config['embeddings_prefix'],
                             str(root) + '/' + config['saved_models_prefix'] + '/' + 'bbcsport_graph_model.pt',
-                            mode='training')
+                            mode='inference')
 
         if operation == 'hybrid_classification':
             print("Classifying BBC sport hybrid data...")
@@ -131,7 +131,7 @@ if __name__ == '__main__':
     parser.add_argument('--config', type=Path, default=root/'config/config.yaml',
                         help='Enter the config file path.')
 
-    parser.add_argument('--dataset', type=str, default='bbcsport', choices=['all', 'ten_newsgroups', 'bbcsport'],
+    parser.add_argument('--dataset', type=str, default='ten_newsgroups', choices=['all', 'ten_newsgroups', 'bbcsport'],
                         help='Choose the dataset.')
 
     parser.add_argument('--operation', type=str, default='graph_classification',

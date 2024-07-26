@@ -33,6 +33,21 @@ def generate_classification_report(classes, model, loader, device):
     '''
 
 
+def evaluate(model, loader, device):
+
+    model = model.to(device)
+    model.eval()
+
+    correct_counter = 0
+
+    for data in loader:
+        out = model(data.x.to(device), data.edge_index.to(device), data.batch.to(device))
+        prediction = out.argmax(dim=1)
+        correct_counter += int((prediction == data.y.to(device)).sum())
+
+    return correct_counter / len(loader.dataset)
+
+
 def get_model_and_device(dataset, model_path=None, pretrained=False):
 
     if model_path is None and pretrained is False:
@@ -76,21 +91,6 @@ def train(model, loader, optimizer, criterion, device):
         optimizer.zero_grad()
 
 
-def evaluate(model, loader, device):
-
-    model = model.to(device)
-    model.eval()
-
-    correct_counter = 0
-
-    for data in loader:
-        out = model(data.x.to(device), data.edge_index.to(device), data.batch.to(device))
-        prediction = out.argmax(dim=1)
-        correct_counter += int((prediction == data.y.to(device)).sum())
-
-    return correct_counter / len(loader.dataset)
-
-
 def epoch_iterator(dataset, classes, graphs_dataset_prefix, model_path):
     train_loader, test_loader = get_loaders(dataset, classes, graphs_dataset_prefix)
     model, device = get_model_and_device(train_loader.dataset)
@@ -103,13 +103,13 @@ def epoch_iterator(dataset, classes, graphs_dataset_prefix, model_path):
         train(model, train_loader, optimizer, criterion, device)
         train_acc = evaluate(model, train_loader, device)
         test_acc = evaluate(model, test_loader, device)
-        print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
+        print(f"Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
 
         if train_acc > best_train_acc:
             best_train_acc = train_acc
             early_stop_counter = 0
 
-        if early_stop_counter == 20 or train_acc > 0.95:
+        if early_stop_counter == 20 or train_acc > 0.975:
             break
 
         early_stop_counter += 1
@@ -118,6 +118,7 @@ def epoch_iterator(dataset, classes, graphs_dataset_prefix, model_path):
 
     print("Post training classification report")
     generate_classification_report(classes, model, test_loader, device)
+    # print(f"Final test accuracy post training: {evaluate(model, test_loader, device)}")
 
 
 def inference(dataset, classes, graphs_dataset_prefix, model_path):
