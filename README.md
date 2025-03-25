@@ -1,2 +1,2 @@
 # stable-AMR-graphs-concept-whitening
-The code for classifying documents using stable AMR graphs and generating explanations using concept whitening.
+This repository contains the code for classifying documents using their document graphs and generating explanations for the classifications, using Concept Whitening (CW). The graph concepts used here for concept whitening, are based on stable AMR graph patterns that are obtained from the training document graphs of each document class, using methods based on Formal Concept Analysis (FCA).
