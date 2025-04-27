@@ -29,8 +29,8 @@ if __name__ == '__main__':
                         help='mode of the operation to be performed.')
 
     parser.add_argument('--concept_type', type=str, default='weighted_frequent_subgraphs',
-                        choices=['weighted_frequent_subgraphs', 'weighted_concepts',
-                                 'weighted_closed_subgraphs', 'weighted_equivalence_classes'],
+                        choices=['weighted_frequent_subgraphs', 'weighted_pattern_concepts',
+                                 'weighted_filtered_equivalence_classes', 'weighted_closed_subgraphs'],
                         help='choice of the concept type for the graph concept construction '
                              'and graph concept whitening operations.')
 
@@ -47,7 +47,9 @@ if __name__ == '__main__':
 
     embeddings_prefix = config['embeddings_prefix']
 
-    concept_types = ['weighted_frequent_subgraphs', 'weighted_concepts', 'weighted_equivalence_classes',
+    images_prefix = config['images_prefix']
+
+    concept_types = ['weighted_frequent_subgraphs', 'weighted_pattern_concepts', 'weighted_filtered_equivalence_classes',
                      'weighted_closed_subgraphs']
 
     graph_conv_type = '_' + config['graph_conv_type']
@@ -99,6 +101,48 @@ if __name__ == '__main__':
 
         target_class = config['ten_newsgroups_target_class']
 
+    elif args.dataset == 'bbcsport':
+        dataset = 'bbcsport'
+        classes = config['bbcsport_classes']
+
+        raw_texts_prefix = config['bbcsport_raw_texts_prefix']
+
+        text_model_name = dataset + '_BERT_' + '_text_model.pt'
+        text_model_path = config['checkpoints_prefix'] + '/' + text_model_name
+
+        graphs_dataset_prefix = config['bbcsport_graphs_dataset_prefix']
+
+        graph_model_name = dataset + graph_conv_type + graph_residual_connections + '_graph_model.pt'
+        graph_model_path = config['checkpoints_prefix'] + '/' + graph_model_name
+
+        hybrid_model_name = dataset + '_BERT_text_' + graph_conv_type + graph_residual_connections + '_hybrid_model.pt'
+        hybrid_model_path = config['checkpoints_prefix'] + '/' + hybrid_model_name
+
+        graph_concepts_dataset_prefix = config['bbcsport_graph_concepts_dataset_prefix']
+        concepts = config['bbcsport_graph_concepts']
+        concepts_name = '_'.join(concepts)
+        concepts_name = '_' + concepts_name
+
+        whitened_graph_model_paths = {}
+        whitened_graph_model_name = (dataset + concepts_name + graph_conv_type + graph_residual_connections +
+                                     '_' + concept_type + '_whitened_graph_model.pt')
+
+        whitened_graph_model_path = config['checkpoints_prefix'] + '/' + whitened_graph_model_name
+        whitened_graph_model_paths[concept_type] = whitened_graph_model_path
+
+        negative_concept_types = [concept_type_temp for concept_type_temp in concept_types
+                                  if concept_type_temp != concept_type]
+
+        for negative_concept_type in negative_concept_types:
+            negative_whitened_graph_model_name = (dataset + concepts_name + graph_conv_type +
+                                                  graph_residual_connections + '_' + negative_concept_type
+                                                  + '_whitened_graph_model.pt')
+
+            negative_whitened_graph_model_path = config['checkpoints_prefix'] + '/' + negative_whitened_graph_model_name
+            whitened_graph_model_paths[negative_concept_type] = negative_whitened_graph_model_path
+
+        target_class = config['bbcsport_target_class']
+
     if operation == 'text_index_construction':
         construct_text_indices(dataset, classes, raw_texts_prefix, raw_texts_csv_prefix)
 
@@ -118,13 +162,13 @@ if __name__ == '__main__':
                              config['graph_residual_connections'], mode)
 
     elif operation == 'graph_concept_whitening':
-        whiten_graph_concepts(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_prefix,
+        whiten_graph_concepts(dataset, classes, images_prefix, graphs_dataset_prefix, graph_concepts_dataset_prefix,
                               concepts, graph_model_path, config['graph_conv_type'],
                               config['graph_residual_connections'], whitened_graph_model_paths,
                               concept_type, negative_concept_types, target_class, mode)
 
     elif operation == 'evaluation':
-        whiten_graph_concepts(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_prefix,
+        whiten_graph_concepts(dataset, classes, images_prefix, graphs_dataset_prefix, graph_concepts_dataset_prefix,
                               concepts, graph_model_path, config['graph_conv_type'],
                               config['graph_residual_connections'], whitened_graph_model_paths,
                               concept_type, negative_concept_types, target_class, mode)

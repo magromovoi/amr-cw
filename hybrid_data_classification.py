@@ -23,9 +23,11 @@ def generate_hybrid_classification_report(classes, hybrid_model, hybrid_loader, 
         y_pred.extend(out.argmax(dim=1).cpu().detach().numpy())
         y_true.extend(data['target'].to(device).cpu().detach().numpy())
 
-    cr = classification_report(y_true, y_pred, target_names=classes)
+    cr = classification_report(y_true, y_pred, target_names=classes, output_dict=True)
+    cr_2 = classification_report(y_true, y_pred, target_names=classes)
 
-    print(cr)
+    print(cr['macro avg']['f1-score'])
+    #print(cr_2)
 
 
 def get_hybrid_model_and_device(dataset, hybrid_model_path=None):
@@ -160,7 +162,7 @@ def hybrid_epoch_iterator(dataset, classes, embeddings_prefix, graph_conv_type, 
         early_stop_counter += 1
 
     print("Post training classification report")
-    generate_hybrid_classification_report(classes, hybrid_model, hybrid_test_loader, device)
+    # generate_hybrid_classification_report(classes, hybrid_model, hybrid_test_loader, device)
     print(f"Final test accuracy post training: {evaluate_hybrid_model_performance(hybrid_model, hybrid_test_loader, 
                                                                                   device)}")
 

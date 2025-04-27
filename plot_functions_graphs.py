@@ -1,15 +1,17 @@
 import torch
-import random
+import shutil
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
 from numpy import linalg as LA
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def concept_gradient_importance(model, test_loader, classes, concepts, class_index, device):
 
     model = model.to(device)
+    model.eval()
 
     outputs = []
 
@@ -30,20 +32,32 @@ def concept_gradient_importance(model, test_loader, classes, concepts, class_ind
 
         output = model(x_var, edge_index_var, batch_var)
         model.zero_grad()
-        prediction_result = torch.argmax(output, dim=1).flatten().tolist()[0]
-        class_count[prediction_result] += 1
-        output[:, prediction_result].backward()
-        directional_derivatives = torch.unsqueeze(outputs[0], 0).mean(dim=1).flatten().cpu().numpy()
-        is_positive = (directional_derivatives > 0).astype(np.int64)
-        if concept_importance_per_class[prediction_result] is None:
-            concept_importance_per_class[prediction_result] = is_positive
-        else:
-            concept_importance_per_class[prediction_result] += is_positive
-        outputs = []
+        prediction_result = torch.argmax(output, dim=1)
+
+        for i in range(len(prediction_result)):
+            class_id = prediction_result[i].item()
+            class_count[class_id] += 1
+
+            torch.autograd.set_detect_anomaly(True)
+            output[i, class_id].backward(retain_graph=True)
+
+            directional_derivatives = torch.unsqueeze(outputs[0], 0).mean(dim=1).flatten().cpu().numpy()
+            is_positive = (directional_derivatives > 0).astype(np.int64)
+
+            if concept_importance_per_class[class_id] is None:
+                concept_importance_per_class[class_id] = is_positive
+            else:
+                concept_importance_per_class[class_id] += is_positive
+
+            outputs = []
+            model.zero_grad()
 
     for i in range(len(classes)):
-        concept_importance_per_class[i] = concept_importance_per_class[i].astype(np.float32)
-        concept_importance_per_class[i] /= class_count[i]
+        if concept_importance_per_class[i] is None:
+            concept_importance_per_class[i] = np.zeros(len(concepts), dtype=np.float32)
+        else:
+            concept_importance_per_class[i] = concept_importance_per_class[i].astype(np.float32)
+            concept_importance_per_class[i] /= class_count[i]
         # print(concept_importance_per_class[i])
         # print(concept_importance_per_class[i].mean())
 
@@ -52,7 +66,8 @@ def concept_gradient_importance(model, test_loader, classes, concepts, class_ind
     return concepts_importances
 
 
-def plot_concept_gradient_importance(aggregate_concept_importances, concepts, target_class):
+def plot_concept_gradient_importance(aggregate_concept_importances, concepts, target_class,
+                                     dataset, graph_conv_type, graph_residual_connections, images_prefix):
 
     x = np.arange(len(concepts))  # the label locations
     width = 0.25  # the width of the bars
@@ -60,21 +75,41 @@ def plot_concept_gradient_importance(aggregate_concept_importances, concepts, ta
 
     yticks = np.arange(1, step=0.1)
 
-    fig, ax = plt.subplots(layout='constrained')
+    fig, ax = plt.subplots(figsize=(14, 8))
+    plt.tight_layout(pad=0.5)
 
     for concept_type, concept_gradient_importance in aggregate_concept_importances.items():
         offset = width * multiplier
         rects = ax.bar(x + offset, np.round(concept_gradient_importance, 2), width, label=concept_type)
-        ax.bar_label(rects, padding=3)
+        ax.bar_label(rects, padding=4, fontsize=18)
         multiplier += 1
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
-    ax.set_ylabel('Concept gradient importance')
-    ax.set_title(f'Concept gradient importances for the {target_class} class')
-    ax.set_xticks(x + width, concepts)
+    ax.set_ylabel('Concept gradient importance', fontsize=20)
+    ax.set_xlabel('Concepts', fontsize=20)
+    ax.set_title(f'Concept gradient importances for class {target_class} '
+                 f'({graph_conv_type}, residuals: {graph_residual_connections}, dataset: {dataset})',
+                 fontsize=22)
+
+    ax.set_xticks(x + width)
+    ax.set_xticklabels(concepts, fontsize=18, rotation=45, ha='right')
     ax.set_yticks(yticks)
-    ax.legend(loc='upper right')
-    ax.set_ylim(0, 1.3)
+    ax.tick_params(axis='y', labelsize=18)
+
+    # Bigger legend
+    ax.legend(loc='upper right', fontsize=18)
+
+    ax.set_ylim(0, 1.5)
+
+    image_filename = (dataset + "_" + target_class + "_"
+                      + graph_conv_type + "_" + str(graph_residual_connections) + ".png")
+
+    image_filename_path = images_prefix + "/" + image_filename
+
+    plt.savefig(image_filename, dpi=600, bbox_inches='tight')
+
+    shutil.move(image_filename,
+                image_filename_path)
 
     plt.show()
 
@@ -159,7 +194,8 @@ def intra_concept_dot_product_vs_inter_concept_dot_product(model, concept_loader
 
 
 def heatmap(data, row_labels, col_labels, ax=None,
-            cbar_kw=None, cbarlabel="", concept_type=None, model_type=None, **kwargs):
+            cbar_kw=None, cbarlabel="", concept_type=None, model_type=None, dataset=None,
+            graph_conv_type=None, graph_residual_connections=None, **kwargs):
     """
     Create a heatmap from a numpy array and two lists of labels.
 
@@ -191,13 +227,15 @@ def heatmap(data, row_labels, col_labels, ax=None,
     # Plot the heatmap
     im = ax.imshow(data, **kwargs)
 
-    # Create colorbar
-    cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
-    cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom")
+    # Create smaller colorbar using make_axes_locatable
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="3%", pad=0.15)
+    cbar = ax.figure.colorbar(im, cax=cax, **cbar_kw)
+    cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom", fontsize=20)
 
     # Show all ticks and label them with the respective list entries.
     ax.set_xticks(range(data.shape[1]), labels=col_labels,
-                  rotation=60, ha="right", rotation_mode="anchor")
+                  rotation=45, ha="right", rotation_mode="anchor")
     ax.set_yticks(range(data.shape[0]), labels=row_labels)
 
     # Let the horizontal axes labeling appear on top.
@@ -207,7 +245,12 @@ def heatmap(data, row_labels, col_labels, ax=None,
     # Turn spines off and create white grid.
     ax.spines[:].set_visible(False)
 
-    ax.set_title(f'Normalized concept {concept_type} similarities for the {model_type} model')
+    ax.set_title(
+        f"{concept_type} similarities – {dataset} ({model_type}, {graph_conv_type}, residuals: {graph_residual_connections})",
+        fontsize=22,
+        pad=20
+    )
+
     ax.set_xticks(np.arange(data.shape[1]+1)-.5, minor=True)
     ax.set_yticks(np.arange(data.shape[0]+1)-.5, minor=True)
     ax.grid(which="minor", color="w", linestyle='-', linewidth=3)
@@ -275,10 +318,10 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
     return texts
 
 
-def plot_concept_dot_product(dot_matrix, concepts, concept_type, model_type):
-    SMALL_SIZE = 12
-    MEDIUM_SIZE = 14
-    BIGGER_SIZE = 16
+def plot_concept_dot_product(dot_matrix, concepts, concept_type, model_type, dataset, graph_conv_type, graph_residual_connections, images_prefix):
+    SMALL_SIZE = 20
+    MEDIUM_SIZE = 22
+    BIGGER_SIZE = 24
 
     plt.rc('font', size=SMALL_SIZE)  # controls default text sizes
     plt.rc('axes', titlesize=SMALL_SIZE)  # fontsize of the axes title
@@ -288,11 +331,25 @@ def plot_concept_dot_product(dot_matrix, concepts, concept_type, model_type):
     plt.rc('legend', fontsize=SMALL_SIZE)  # legend fontsize
     plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12, 12))
 
     im, cbar = heatmap(dot_matrix, concepts, concepts, ax=ax,
-                       cmap="YlOrRd", cbarlabel="normalized concept similarity", concept_type=concept_type, model_type=model_type)
-    texts = annotate_heatmap(im, valfmt="{x:.2f}")
+                       cmap="YlOrRd", cbarlabel="concept similarity", concept_type=concept_type, model_type=model_type,
+                       dataset=dataset, graph_conv_type=graph_conv_type,
+                       graph_residual_connections=graph_residual_connections)
 
-    fig.tight_layout()
+    texts = annotate_heatmap(im, valfmt="{x:.2f}", fontsize=20)
+
+    fig.tight_layout(pad=0.5)
+
+    image_filename = (dataset + "_" + graph_conv_type + "_" + str(graph_residual_connections) + "_" + concept_type
+                      + "_" + model_type + ".png")
+
+    image_filename_path = images_prefix + "/" + image_filename
+
+    plt.savefig(image_filename, dpi=600, bbox_inches='tight', pad_inches=0.2)
+
+    shutil.move(image_filename,
+                image_filename_path)
+
     plt.show()

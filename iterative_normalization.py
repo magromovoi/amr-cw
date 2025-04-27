@@ -27,7 +27,10 @@ class iterative_normalization_py(torch.autograd.Function):
         x = X.transpose(0, 1).contiguous().view(ctx.g, nc, -1)
         _, d, m = x.size()
         saved = []
-        if training:
+
+        requires_grad = X.requires_grad  # check if .backward() will be called
+
+        if training or requires_grad:
             # calculate centered activation by subtracted mini-batch mean
             mean = x.mean(-1, keepdim=True)
             xc = x - mean
@@ -44,7 +47,7 @@ class iterative_normalization_py(torch.autograd.Function):
             for k in range(ctx.T):
                 P[k + 1] = torch.baddbmm(1.5, P[k], -0.5, torch.matrix_power(P[k], 3), Sigma_N)
             saved.extend(P)
-            wm = P[ctx.T].mul_(rTr.sqrt())  # whiten matrix: the matrix inverse of Sigma, i.e., Sigma^{-1/2}
+            wm = P[ctx.T] * rTr.sqrt()  # whiten matrix: the matrix inverse of Sigma, i.e., Sigma^{-1/2}
             running_mean.copy_(momentum * mean + (1. - momentum) * running_mean)
             running_wmat.copy_(momentum * wm + (1. - momentum) * running_wmat)
         else:
@@ -71,13 +74,14 @@ class iterative_normalization_py(torch.autograd.Function):
         wm = P[ctx.T]
         g_sn = 0
         for k in range(ctx.T, 1, -1):
-            P[k - 1].transpose_(-2, -1)
-            P2 = P[k - 1].matmul(P[k - 1])
-            g_sn += P2.matmul(P[k - 1]).matmul(g_P)
+            #P[k - 1].transpose_(-2, -1)
+            P_k_T = P[k - 1].transpose(-2, -1)
+            P2 = P_k_T.matmul(P_k_T)
+            g_sn += P2.matmul(P_k_T).matmul(g_P)
             g_tmp = g_P.matmul(sn)
             g_P.baddbmm_(1.5, -0.5, g_tmp, P2)
             g_P.baddbmm_(1, -0.5, P2, g_tmp)
-            g_P.baddbmm_(1, -0.5, P[k - 1].matmul(g_tmp), P[k - 1])
+            g_P.baddbmm_(1, -0.5, P_k_T.matmul(g_tmp), P_k_T)
         g_sn += g_P
         # g_sn = g_sn * rTr.sqrt()
         g_tr = ((-sn.matmul(g_sn) + g_wm.transpose(-2, -1).matmul(wm)) * P[0]).sum((1, 2), keepdim=True) * P[0]

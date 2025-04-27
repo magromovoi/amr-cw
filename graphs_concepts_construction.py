@@ -111,10 +111,12 @@ def construct_graph_concepts(graph_concepts_dataset_prefix, dataset, classes, co
                                     weighted_frequent_subgraph_concept_filename_path)
                         '''
 
+            assert (len(collected_weighted_frequent_subgraphs)/len(weighted_frequent_subgraphs)) >= 0.01
+
             save_graph_concepts(collected_weighted_frequent_subgraphs, graph_concepts_dataset_prefix,
                                 concept_type, class_name)
 
-    elif concept_type == 'weighted_concepts':
+    elif concept_type == 'weighted_pattern_concepts':
 
         print(f"Constructing {concept_type} for {dataset}")
 
@@ -154,10 +156,12 @@ def construct_graph_concepts(graph_concepts_dataset_prefix, dataset, classes, co
                                     weighted_concept_graph_filename_path)
                         '''
 
+            assert (len(collected_weighted_concepts) / len(weighted_concepts)) >= 0.01
+
             save_graph_concepts(collected_weighted_concepts, graph_concepts_dataset_prefix,
                                 concept_type, class_name)
 
-    elif concept_type == 'weighted_equivalence_classes':
+    elif concept_type == 'weighted_filtered_equivalence_classes':
 
         print(f"Constructing {concept_type} for {dataset}")
 
@@ -196,6 +200,9 @@ def construct_graph_concepts(graph_concepts_dataset_prefix, dataset, classes, co
                         shutil.move(weighted_equivalence_class_filename,
                                     weighted_concept_graph_filename_path)
                         '''
+
+            assert (len(collected_weighted_equivalence_classes) / len(weighted_equivalence_classes)) >= 0.01
+
             save_graph_concepts(collected_weighted_equivalence_classes, graph_concepts_dataset_prefix,
                                 concept_type, class_name)
 
@@ -237,6 +244,8 @@ def construct_graph_concepts(graph_concepts_dataset_prefix, dataset, classes, co
 
                             shutil.move(weighted_closed_subgraph_filename, weighted_closed_subgraph_filename_path)
                             '''
+
+            assert (len(collected_weighted_closed_subgraphs) / len(weighted_concepts)) >= 0.01
 
             save_graph_concepts(collected_weighted_closed_subgraphs, graph_concepts_dataset_prefix,
                                 concept_type, class_name)

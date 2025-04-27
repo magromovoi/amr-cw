@@ -25,9 +25,9 @@ def generate_text_classification_report(classes, text_model, text_loader, device
         y_pred.extend(out.argmax(dim=1).cpu().detach().numpy())
         y_true.extend(data['target'].to(device).cpu().detach().numpy())
 
-    cr = classification_report(y_true, y_pred, target_names=classes)
+    cr = classification_report(y_true, y_pred, target_names=classes, output_dict=True)
 
-    print(cr)
+    print(cr['macro avg']['f1-score'])
 
 
 def evaluate_text_model_performance(text_model, text_loader, device):

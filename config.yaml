@@ -1,22 +1,31 @@
 ten_newsgroups_classes: ['business', 'entertainment', 'food', 'graphics', 'historical', 'medical', 'politics', 'space', 'sport', 'technologie']
+bbcsport_classes: ['athletics', 'cricket', 'football', 'rugby', 'tennis']
 
 ten_newsgroups_raw_texts_prefix: 'data/raw_data/texts/ten_newsgroups_texts'
+bbcsport_raw_texts_prefix: 'data/raw_data/texts/bbcsport_texts'
 
 ten_newsgroups_graphs_dataset_prefix: 'data/datasets/ten_newsgroups_graphs_dataset'
+bbcsport_graphs_dataset_prefix: 'data/datasets/bbcsport_graphs_dataset'
 
 ten_newsgroups_graph_concepts_dataset_prefix: 'data/datasets/ten_newsgroups_graph_concepts_dataset'
+bbcsport_graph_concepts_dataset_prefix: 'data/datasets/bbcsport_graph_concepts_dataset'
 
 raw_texts_csv_prefix: 'data/raw_data/csvs'
 
 embeddings_prefix: 'data/embeddings'
+
+images_prefix: 'images'
 
 checkpoints_prefix: 'checkpoints'
 
 graph_conv_type: 'gcn_conv'
 graph_residual_connections: False
 
-ten_newsgroups_graph_concepts: ['business', 'entertainment', 'food', 'graphics', 'historical']
-ten_newsgroups_target_class: 'historical'
+ten_newsgroups_graph_concepts: ['entertainment', 'graphics', 'historical', 'politics', 'sport']
+ten_newsgroups_target_class: 'sport'
 
-min_support: 20
-max_penalty: 20
+bbcsport_graph_concepts: ['cricket', 'football', 'tennis']
+bbcsport_target_class: 'tennis'
+
+min_support: 35
+max_penalty: 23

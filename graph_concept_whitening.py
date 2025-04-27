@@ -3,7 +3,7 @@ import pickle
 from plot_functions_graphs import (concept_gradient_importance, plot_concept_gradient_importance,
                                    intra_concept_dot_product_vs_inter_concept_dot_product, plot_concept_dot_product)
 
-from graph_classification import (save_checkpoint, evaluate_model_performance, get_model_and_device, get_loaders,
+from graph_classification import (save_checkpoint, generate_classification_report, evaluate_model_performance, get_model_and_device, get_loaders,
                                   get_optimizer_and_criterion)
 
 
@@ -12,7 +12,7 @@ def train_concept_whitening(model, loader, concept_loaders, optimizer, criterion
     model.train()
 
     for graph_batch_index, graph_batch in enumerate(loader):
-        if (graph_batch_index + 1) % 4 == 0:
+        if (graph_batch_index + 1) % 3 == 0:
             model.eval()
             with torch.no_grad():
                 # update the gradient matrix G
@@ -34,6 +34,7 @@ def train_concept_whitening(model, loader, concept_loaders, optimizer, criterion
         loss.backward()
         #torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=2.0)
         optimizer.step()
+    return neg_con_align
 
 
 def concept_whitening_epoch_iterator(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_prefix,
@@ -53,12 +54,13 @@ def concept_whitening_epoch_iterator(dataset, classes, graphs_dataset_prefix, gr
     if last_epoch != 0:
         train_acc = evaluate_model_performance(model, train_loader, device)
         test_acc = evaluate_model_performance(model, test_loader, device)
-        print(f"Resuming training from Epoch: {last_epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
+        print(f"Resuming training from Epoch: {last_epoch:03d}, Best Test Acc: {best_test_acc:.4f}")
 
-    #best_test_acc = 0
+    early_stop_counter = 0
+    best_neg_con_align = 1000
 
-    for epoch in range(last_epoch + 1, last_epoch + 50):
-        train_concept_whitening(model, train_loader, train_concept_loaders, optimizer, criterion, device)
+    for epoch in range(last_epoch + 1, last_epoch + 1000):
+        neg_con_align = train_concept_whitening(model, train_loader, train_concept_loaders, optimizer, criterion, device)
         train_acc = evaluate_model_performance(model, train_loader, device)
         test_acc = evaluate_model_performance(model, test_loader, device)
         # train_acc_report = generate_classification_report(classes, model, train_loader, device)
@@ -67,15 +69,47 @@ def concept_whitening_epoch_iterator(dataset, classes, graphs_dataset_prefix, gr
 
         print(f"Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
 
-        '''
-        if test_acc > best_test_acc:
-            best_test_acc = test_acc
-            save_checkpoint({'epoch': epoch, 'model_state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict(), 'best_test_acc': best_test_acc}, whitened_graph_model_path)
-            print(f"New best Test Accuracy achieved on Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
-        '''
-        save_checkpoint({'epoch': epoch, 'model_state_dict': model.state_dict(),
-                         'optimizer_state_dict': optimizer.state_dict(),
-                         'best_test_acc': best_test_acc}, whitened_graph_model_path)
+        if neg_con_align < best_neg_con_align:
+            early_stop_counter = 0
+            best_neg_con_align = neg_con_align
+            print(f"New best Negative Concept Alignment achieved on Epoch: {epoch:03d}, "
+                  f"Negative Concept Alignment: {best_neg_con_align}, "
+                  f"Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}.")
+
+            if test_acc >= 0.87 * best_test_acc:
+
+                print(f"Saving checkpoint since {test_acc} is close to or greater than {best_test_acc}")
+
+                save_checkpoint({'epoch': epoch, 'model_state_dict': model.state_dict(),
+                                 'optimizer_state_dict': optimizer.state_dict(),
+                                 'best_test_acc': test_acc,
+                                 'best_neg_con_align': best_neg_con_align}, whitened_graph_model_path)
+
+        else:
+            early_stop_counter += 1
+
+        if early_stop_counter == 5:
+            print("Concept whitening training is stagnating, so training is stopped.")
+            break
+
+
+def concept_whitening_inference(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_prefix, concepts,
+                                whitened_graph_model_path, graph_conv_type, graph_residual_connections, concept_type):
+
+    train_loader, test_loader, train_concept_loaders, test_concept_loaders = get_loaders(dataset, classes,
+                                                                                         graphs_dataset_prefix,
+                                                                                         graph_concepts_dataset_prefix + '_' + concept_type,
+                                                                                         concepts)
+
+    model, device, last_epoch, best_test_acc, best_neg_con_align = get_model_and_device(train_loader.dataset, len(classes),
+                                                                                        whitened_graph_model_path,
+                                                                                        graph_conv_type, graph_residual_connections,
+                                                                                        whitening=True)
+
+    print("Inference classification report")
+    generate_classification_report(classes, model, test_loader, device)
+    print(f"Final test accuracy inference: {evaluate_model_performance(model, test_loader, device)}")
+    print(f"Final negative concept alignment: {best_neg_con_align}")
 
 
 def aggregate_concept_gradient_importance_data(dataset, classes, graphs_dataset_prefix, concepts, graph_conv_type,
@@ -84,7 +118,7 @@ def aggregate_concept_gradient_importance_data(dataset, classes, graphs_dataset_
     train_loader, test_loader = get_loaders(dataset, classes, graphs_dataset_prefix,
                                             concept_gradient_importance_flag=True)
 
-    model, device, last_epoch, best_test_acc = get_model_and_device(train_loader.dataset, len(classes), whitened_graph_model_path,
+    model, device, last_epoch, best_test_acc, best_neg_con_align = get_model_and_device(train_loader.dataset, len(classes), whitened_graph_model_path,
                                                                     graph_conv_type, graph_residual_connections,
                                                                     whitening=True)
 
@@ -104,7 +138,7 @@ def aggregate_concept_dot_product_data(dataset, classes, graphs_dataset_prefix, 
                                                            concept_dot_product_flag=True)
 
     if whitening:
-        model, device, last_epoch, best_test_acc = get_model_and_device(train_loader.dataset, len(classes),
+        model, device, last_epoch, best_test_acc, best_neg_con_align = get_model_and_device(train_loader.dataset, len(classes),
                                                                         whitened_graph_model_path,
                                                                         graph_conv_type, graph_residual_connections,
                                                                         whitening=True)
@@ -121,7 +155,7 @@ def aggregate_concept_dot_product_data(dataset, classes, graphs_dataset_prefix, 
     return dot_product_matrix
 
 
-def whiten_graph_concepts(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_prefix, concepts,
+def whiten_graph_concepts(dataset, classes, images_prefix, graphs_dataset_prefix, graph_concepts_dataset_prefix, concepts,
                           graph_model_path, graph_conv_type, graph_residual_connections, whitened_graph_model_paths,
                           concept_type, negative_concept_types, target_class, mode):
 
@@ -133,6 +167,15 @@ def whiten_graph_concepts(dataset, classes, graphs_dataset_prefix, graph_concept
         concept_whitening_epoch_iterator(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_prefix,
                                          concepts, graph_model_path, graph_conv_type, graph_residual_connections,
                                          whitened_graph_model_paths[concept_type], concept_type)
+
+    elif mode == 'predict':
+
+        print(f"Predicting graph classification for {dataset} using GNN {graph_conv_type} residual connections "
+              f"{graph_residual_connections} with Concept Whitening for {concept_type} graph concepts.")
+
+        concept_whitening_inference(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_prefix, concepts,
+                                    whitened_graph_model_paths[concept_type], graph_conv_type, graph_residual_connections,
+                                    concept_type)
 
     elif mode == 'concept_gradient_importance':
 
@@ -149,7 +192,7 @@ def whiten_graph_concepts(dataset, classes, graphs_dataset_prefix, graph_concept
                                                                                                               whitened_graph_model_paths[negative_concept_type],
                                                                                                               target_class)
 
-        plot_concept_gradient_importance(aggregate_concept_importances, concepts, target_class)
+        plot_concept_gradient_importance(aggregate_concept_importances, concepts, target_class, dataset, graph_conv_type, graph_residual_connections, images_prefix)
 
     elif mode == 'concept_dot_product':
         dot_product_matrix_black = aggregate_concept_dot_product_data(dataset, classes, graphs_dataset_prefix,
@@ -159,7 +202,8 @@ def whiten_graph_concepts(dataset, classes, graphs_dataset_prefix, graph_concept
                                                                       whitened_graph_model_paths[concept_type],
                                                                       concept_type)
 
-        plot_concept_dot_product(dot_product_matrix_black, concepts, concept_type, 'black')
+        plot_concept_dot_product(dot_product_matrix_black, concepts, concept_type, 'black-box', dataset,
+                                 graph_conv_type, graph_residual_connections, images_prefix)
 
         dot_product_matrix_white = aggregate_concept_dot_product_data(dataset, classes, graphs_dataset_prefix,
                                                                       graph_concepts_dataset_prefix,
@@ -168,7 +212,8 @@ def whiten_graph_concepts(dataset, classes, graphs_dataset_prefix, graph_concept
                                                                       whitened_graph_model_paths[concept_type],
                                                                       concept_type, whitening=True)
 
-        plot_concept_dot_product(dot_product_matrix_white, concepts, concept_type, 'white')
+        plot_concept_dot_product(dot_product_matrix_white, concepts, concept_type, 'white-box', dataset,
+                                 graph_conv_type, graph_residual_connections, images_prefix)
 
         for negative_concept_type in negative_concept_types:
             dot_product_matrix_black = aggregate_concept_dot_product_data(dataset, classes, graphs_dataset_prefix,
@@ -178,7 +223,8 @@ def whiten_graph_concepts(dataset, classes, graphs_dataset_prefix, graph_concept
                                                                           whitened_graph_model_paths[negative_concept_type],
                                                                           negative_concept_type)
 
-            plot_concept_dot_product(dot_product_matrix_black, concepts, negative_concept_type, 'black')
+            plot_concept_dot_product(dot_product_matrix_black, concepts, negative_concept_type, 'black-box', dataset,
+                                     graph_conv_type, graph_residual_connections, images_prefix)
 
             dot_product_matrix_white = aggregate_concept_dot_product_data(dataset, classes, graphs_dataset_prefix,
                                                                           graph_concepts_dataset_prefix,
@@ -187,4 +233,5 @@ def whiten_graph_concepts(dataset, classes, graphs_dataset_prefix, graph_concept
                                                                           whitened_graph_model_paths[negative_concept_type],
                                                                           negative_concept_type, whitening=True)
 
-            plot_concept_dot_product(dot_product_matrix_white, concepts, negative_concept_type, 'white')
+            plot_concept_dot_product(dot_product_matrix_white, concepts, negative_concept_type, 'white-box', dataset,
+                                     graph_conv_type, graph_residual_connections, images_prefix)

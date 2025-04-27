@@ -25,9 +25,11 @@ def generate_classification_report(classes, model, loader, device):
         y_pred.extend(out.argmax(dim=1).cpu().detach().numpy())
         y_true.extend(data.y.to(device).cpu().detach().numpy())
 
-    cr = classification_report(y_true, y_pred, target_names=classes)
+    cr = classification_report(y_true, y_pred, target_names=classes, output_dict=True)
+    cr_2 = classification_report(y_true, y_pred, target_names=classes)
 
-    print(cr)
+    print(cr['macro avg']['f1-score'])
+    #print(cr_2)
 
 
 def evaluate_model_performance(model, loader, device):
@@ -92,18 +94,29 @@ def get_model_and_device(dataset, num_classes, graph_model_path=None, graph_conv
         last_epoch = checkpoint['epoch']
         best_test_acc = checkpoint['best_test_acc']
 
+        if 'best_neg_con_align' in checkpoint:
+            best_neg_con_align = checkpoint['best_neg_con_align']
+
+        else:
+            best_neg_con_align = None
+
     except FileNotFoundError:
         model = GNN(dataset, num_classes=num_classes, hidden_channels=300, conv_type=graph_conv_type,
                     residual_connections=graph_residual_connections)
 
         last_epoch = 0
         best_test_acc = 0
+        best_neg_con_align = None
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     print(model)
 
-    return model, device, last_epoch, best_test_acc
+    if best_neg_con_align is not None:
+        return model, device, last_epoch, best_test_acc, best_neg_con_align
+
+    else:
+        return model, device, last_epoch, best_test_acc
 
 
 '''
@@ -125,10 +138,10 @@ def get_loaders(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_
     train_dataset = GraphDataset(root=graphs_dataset_prefix, labels=classes, dataset=dataset)
     test_dataset = GraphDataset(root=graphs_dataset_prefix, labels=classes, dataset=dataset, test=True)
 
-    train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
 
     if concept_gradient_importance_flag:
-        test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+        test_loader = DataLoader(test_dataset, batch_size=32, shuffle=True)
     else:
         test_loader = DataLoader(test_dataset, batch_size=32, shuffle=True)
 
@@ -144,7 +157,7 @@ def get_loaders(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_
             train_concept_datasets[concept] = GraphConceptDataset(root=f"{graph_concepts_dataset_prefix + '/' + concept}",
                                                                   label=concept, labels=classes)
 
-            train_concept_loaders[concept] = DataLoader(train_concept_datasets[concept], batch_size=64, shuffle=True)
+            train_concept_loaders[concept] = DataLoader(train_concept_datasets[concept], batch_size=32, shuffle=True)
 
             test_concept_datasets[concept] = GraphConceptDataset(root=f"{graph_concepts_dataset_prefix + '/' + concept}",
                                                                  label=concept, labels=classes, test=True)

@@ -60,7 +60,7 @@ class GNN(torch.nn.Module):
                 for i in range(5):
                     x = self.conv1(x, edge_index)
 
-                    if i % 3 == 0 and i != 0:
+                    if i % 4 == 0 and i != 0:
                         if self.whitening:
                             x = self.norm1(x, edge_index, batch)
                         else:
@@ -120,7 +120,7 @@ class GNN(torch.nn.Module):
                 for i in range(5):
                     x = self.conv1(x, edge_index)
 
-                    if i % 3 == 0 and i != 0:
+                    if i % 4 == 0 and i != 0:
                         if self.whitening:
                             x = self.norm1(x, edge_index, batch)
                         else:
