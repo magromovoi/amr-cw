@@ -16,10 +16,10 @@ pip install numpy pandas networkx scikit-learn scipy
 
 ## Usage
 
-Due to their large size, model checkpoints are stored at **[LINK_1]**.  
+Due to their large size, model checkpoints are stored at **[[checkpoints]](https://www.dropbox.com/scl/fo/liabqakl4w4ftqf6mw4ok/AMY2tqbkHWegCKQQehGKUDs?rlkey=yyeets245smzgv6c5ev1irx9v&st=3r3qevtt&dl=0)**.  
 Please download them and place the files into the `checkpoints/` directory.
 
-Word2Vec node embeddings are stored separately at **[LINK_2]**.  
+Word2Vec node embeddings are stored separately at **[[word2vec embeddings]](https://www.dropbox.com/scl/fo/uvbpdblfhq88zg6dansbq/AI70P4hzE_T1_2xcVlIM6jY?rlkey=oaq8jzaaoloh44260qe86m44o&st=qiuss65t&dl=0)**.  
 Please download them and place the files in the main directory (alongside the `.py` scripts).
 
 ### Running the experiments
