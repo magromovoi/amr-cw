@@ -72,18 +72,17 @@ def concept_whitening_epoch_iterator(dataset, classes, graphs_dataset_prefix, gr
         if neg_con_align < best_neg_con_align:
             early_stop_counter = 0
             best_neg_con_align = neg_con_align
+
             print(f"New best Negative Concept Alignment achieved on Epoch: {epoch:03d}, "
                   f"Negative Concept Alignment: {best_neg_con_align}, "
                   f"Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}.")
 
-            if test_acc >= 0.87 * best_test_acc:
+            print(f"Saving checkpoint.")
 
-                print(f"Saving checkpoint since {test_acc} is close to or greater than {best_test_acc}")
-
-                save_checkpoint({'epoch': epoch, 'model_state_dict': model.state_dict(),
-                                 'optimizer_state_dict': optimizer.state_dict(),
-                                 'best_test_acc': test_acc,
-                                 'best_neg_con_align': best_neg_con_align}, whitened_graph_model_path)
+            save_checkpoint({'epoch': epoch, 'model_state_dict': model.state_dict(),
+                             'optimizer_state_dict': optimizer.state_dict(),
+                             'best_test_acc': test_acc,
+                             'best_neg_con_align': best_neg_con_align}, whitened_graph_model_path)
 
         else:
             early_stop_counter += 1
