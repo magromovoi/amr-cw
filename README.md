@@ -31,3 +31,9 @@ Please download them and place the files in the main directory (alongside the `.
 - For the **BBC Sport** dataset:
   - Use the `bbcsport_GNN_black-box_commands.sh` file for black-box GNN experiments.
   - Use the `bbcsport_GNN_CW_commands.sh` file for white-box GNN experiments.
+
+To change the GNN model and toggle residual connections, please modify the `graph_conv_type` and `graph_residual_connections` variables in the `config.yaml` file.  
+
+Additionally, the target classes for computing concept gradient importances can be adjusted:
+- For the **10 Newsgroups** dataset: modify the `ten_newsgroups_target_class` field.
+- For the **BBC Sport** dataset: modify the `bbcsport_target_class` field.
