@@ -48,33 +48,6 @@ def evaluate_model_performance(model, loader, device):
     return correct_counter / len(loader.dataset)
 
 
-'''
-def get_model_and_device(dataset, graph_model_path=None, graph_conv_type='gcn_conv', graph_residual_connections=False):
-
-    try:
-        model = GNN(dataset, hidden_channels=300, conv_type=graph_conv_type,
-                    residual_connections=graph_residual_connections)
-
-        checkpoint = torch.load(graph_model_path, weights_only=False)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        last_epoch = checkpoint['epoch']
-        best_test_acc = checkpoint['best_test_acc']
-
-    except FileNotFoundError:
-        model = GNN(dataset, hidden_channels=300, conv_type=graph_conv_type,
-                    residual_connections=graph_residual_connections)
-
-        last_epoch = 0
-        best_test_acc = 0
-
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    print(model)
-
-    return model, device, last_epoch, best_test_acc
-'''
-
-
 def get_model_and_device(dataset, num_classes, graph_model_path=None, graph_conv_type='gcn_conv',
                          graph_residual_connections=False, whitening=False, embedding=False):
 
@@ -117,19 +90,6 @@ def get_model_and_device(dataset, num_classes, graph_model_path=None, graph_conv
 
     else:
         return model, device, last_epoch, best_test_acc
-
-
-'''
-def get_loaders(dataset, classes, graphs_dataset_prefix):
-
-    train_dataset = GraphDataset(root=graphs_dataset_prefix, labels=classes, dataset=dataset)
-    test_dataset = GraphDataset(root=graphs_dataset_prefix, labels=classes, dataset=dataset, test=True)
-
-    train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
-
-    return train_loader, test_loader
-'''
 
 
 def get_loaders(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_prefix=None, concepts=None,
@@ -233,14 +193,9 @@ def epoch_iterator(dataset, classes, graphs_dataset_prefix, graph_model_path, gr
         test_acc = evaluate_model_performance(model, test_loader, device)
         print(f"Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
 
-        if test_acc > best_test_acc:
-            best_test_acc = test_acc
-            save_checkpoint({'epoch': epoch, 'model_state_dict': model.state_dict(),
-                             'optimizer_state_dict': optimizer.state_dict(), 'best_test_acc': best_test_acc},
-                            graph_model_path)
-
-            print(f"New best Test Accuracy achieved on Epoch: {epoch:03d}, "
-                  f"Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
+        save_checkpoint({'epoch': epoch, 'model_state_dict': model.state_dict(),
+                         'optimizer_state_dict': optimizer.state_dict(), 'best_test_acc': test_acc},
+                        graph_model_path)
 
     print("Post training classification report")
     generate_classification_report(classes, model, test_loader, device)
