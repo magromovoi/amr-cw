@@ -133,33 +133,20 @@ def hybrid_epoch_iterator(dataset, classes, embeddings_prefix, graph_conv_type, 
 
     optimizer, criterion = get_hybrid_optimizer_and_criterion(hybrid_model, hybrid_model_path)
 
-    early_stop_counter = 0
-
     if last_epoch != 0:
         train_acc = evaluate_hybrid_model_performance(hybrid_model, hybrid_train_loader, device)
         test_acc = evaluate_hybrid_model_performance(hybrid_model, hybrid_test_loader, device)
         print(f"Resuming training from Epoch: {last_epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
 
-    for epoch in range(last_epoch + 1, last_epoch + 100):
+    for epoch in range(last_epoch + 1, last_epoch + 10):
         hybrid_train(hybrid_model, hybrid_train_loader, optimizer, criterion, device)
         train_acc = evaluate_hybrid_model_performance(hybrid_model, hybrid_train_loader, device)
         test_acc = evaluate_hybrid_model_performance(hybrid_model, hybrid_test_loader, device)
         print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
 
-        if test_acc > best_test_acc:
-            early_stop_counter = 0
-            best_test_acc = test_acc
-            save_checkpoint({'epoch': epoch, 'model_state_dict': hybrid_model.state_dict(),
-                             'optimizer_state_dict': optimizer.state_dict(), 'best_test_acc': best_test_acc},
-                            hybrid_model_path)
-
-            print(f"New best Test Accuracy achieved on Epoch: {epoch:03d}, "
-                  f"Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
-
-        if early_stop_counter > 5 or test_acc > 0.975:
-            break
-
-        early_stop_counter += 1
+        save_checkpoint({'epoch': epoch, 'model_state_dict': hybrid_model.state_dict(),
+                         'optimizer_state_dict': optimizer.state_dict(), 'best_test_acc': test_acc},
+                        hybrid_model_path)
 
     print("Post training classification report")
     # generate_hybrid_classification_report(classes, hybrid_model, hybrid_test_loader, device)
