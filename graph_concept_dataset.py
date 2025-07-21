@@ -41,9 +41,7 @@ class GraphConceptDataset(Dataset):
 
         processed_file_names_temp = []
 
-        sorted_raw_file_names = sorted(self.raw_file_names)
-
-        for r_index, raw_file_name in enumerate(sorted_raw_file_names):
+        for r_index, raw_file_name in enumerate(self.raw_file_names):
             processed_file_names_temp.append(f"{self.data_partition}_{r_index}_data.pt")
 
         return processed_file_names_temp
@@ -66,7 +64,7 @@ class GraphConceptDataset(Dataset):
             label_index_y = copy.deepcopy(np.asarray([label_index]))
             label_index_y = torch.tensor(label_index_y, dtype=torch.long)
 
-            data = Data(x=node_features, edge_index=edge_indices, y=label_index_y)
+            data = Data(x=node_features, edge_index=edge_indices, y=label_index_y, file_path=raw_path)
             torch.save(data, os.path.join(self.processed_dir, f"{self.data_partition}_{idx}_data.pt"))
             idx += 1
 

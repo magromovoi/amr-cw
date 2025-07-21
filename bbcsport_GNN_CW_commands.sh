@@ -142,3 +142,12 @@ rm -f data/datasets/bbcsport_graph_concepts_dataset_weighted_closed_subgraphs/te
 # Visualize bbcsport concept similarities
 
 #python main.py --dataset bbcsport --operation evaluation --mode concept_dot_product
+
+
+# Calculate bbcsport macro-averaged F1 CAP
+
+python main.py --dataset bbcsport --operation evaluation --mode concept_axis_visualization
+
+# Extract bbcsport top-activating graph concepts
+
+python main.py --dataset bbcsport --operation evaluation --mode top_activation_subgraphs

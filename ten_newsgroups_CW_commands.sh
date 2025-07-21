@@ -198,6 +198,17 @@ rm -f data/datasets/ten_newsgroups_graph_concepts_dataset_weighted_closed_subgra
 
 #python main.py --dataset ten_newsgroups --operation evaluation --mode concept_gradient_importance
 
+
+
 # Visualize ten newsgroups concept similarities
 
 #python main.py --dataset ten_newsgroups --operation evaluation --mode concept_dot_product
+
+
+# Calculate ten newsgroups macro-averaged F1 CAP
+
+python main.py --dataset ten_newsgroups --operation evaluation --mode concept_axis_visualization
+
+# Extract ten newsgroups top-activating graph concepts
+
+python main.py --dataset ten_newsgroups --operation evaluation --mode top_activation_subgraphs

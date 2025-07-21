@@ -93,7 +93,8 @@ def get_model_and_device(dataset, num_classes, graph_model_path=None, graph_conv
 
 
 def get_loaders(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_prefix=None, concepts=None,
-                concept_gradient_importance_flag=False, concept_dot_product_flag=False):
+                concept_gradient_importance_flag=False, concept_dot_product_flag=False,
+                concept_concept_axis_visualization_flag=False, top_activation_subgraphs_flag=False):
 
     train_dataset = GraphDataset(root=graphs_dataset_prefix, labels=classes, dataset=dataset)
     test_dataset = GraphDataset(root=graphs_dataset_prefix, labels=classes, dataset=dataset, test=True)
@@ -103,7 +104,7 @@ def get_loaders(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_
     if concept_gradient_importance_flag:
         test_loader = DataLoader(test_dataset, batch_size=32, shuffle=True)
     else:
-        test_loader = DataLoader(test_dataset, batch_size=32, shuffle=True)
+        test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
     if graph_concepts_dataset_prefix and concepts:
 
@@ -122,7 +123,7 @@ def get_loaders(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_
             test_concept_datasets[concept] = GraphConceptDataset(root=f"{graph_concepts_dataset_prefix + '/' + concept}",
                                                                  label=concept, labels=classes, test=True)
 
-            test_concept_loaders[concept] = DataLoader(test_concept_datasets[concept], batch_size=1, shuffle=True)
+            test_concept_loaders[concept] = DataLoader(test_concept_datasets[concept], batch_size=32, shuffle=False)
 
         if concept_dot_product_flag:
 
@@ -133,7 +134,20 @@ def get_loaders(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_
 
             merged_test_concept_dataset = ConcatDataset(test_concept_dataset_temp)
 
-            merged_test_concept_loader = DataLoader(merged_test_concept_dataset, batch_size=1, shuffle=True)
+            merged_test_concept_loader = DataLoader(merged_test_concept_dataset, batch_size=1, shuffle=False)
+
+            return train_loader, merged_test_concept_loader
+
+        elif concept_concept_axis_visualization_flag or top_activation_subgraphs_flag:
+
+            test_concept_dataset_temp = []
+
+            for concept, test_concept_dataset in test_concept_datasets.items():
+                test_concept_dataset_temp.append(test_concept_dataset)
+
+            merged_test_concept_dataset = ConcatDataset(test_concept_dataset_temp)
+
+            merged_test_concept_loader = DataLoader(merged_test_concept_dataset, batch_size=32, shuffle=False)
 
             return train_loader, merged_test_concept_loader
 

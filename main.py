@@ -25,7 +25,8 @@ if __name__ == '__main__':
                         help='operation to be performed.')
 
     parser.add_argument('--mode', type=str, default='concept_gradient_importance',
-                        choices=['train', 'predict', 'embeddings', 'concept_gradient_importance', 'concept_dot_product'],
+                        choices=['train', 'predict', 'embeddings', 'concept_gradient_importance', 'concept_dot_product',
+                                 'concept_axis_visualization', 'top_activation_subgraphs'],
                         help='mode of the operation to be performed.')
 
     parser.add_argument('--concept_type', type=str, default='weighted_frequent_subgraphs',

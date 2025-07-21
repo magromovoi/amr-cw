@@ -1,10 +1,13 @@
+import os
 import torch
 import pickle
 from plot_functions_graphs import (concept_gradient_importance, plot_concept_gradient_importance,
-                                   intra_concept_dot_product_vs_inter_concept_dot_product, plot_concept_dot_product)
+                                   intra_concept_dot_product_vs_inter_concept_dot_product, plot_elegant_concept_similarities,
+                                   compute_axis_alignment_accuracy_and_f1, extract_top_activation_subgraphs_per_concept,
+                                   draw_graph)
 
-from graph_classification import (save_checkpoint, generate_classification_report, evaluate_model_performance, get_model_and_device, get_loaders,
-                                  get_optimizer_and_criterion)
+from graph_classification import (save_checkpoint, generate_classification_report, evaluate_model_performance,
+                                  get_model_and_device, get_loaders, get_optimizer_and_criterion)
 
 
 def train_concept_whitening(model, loader, concept_loaders, optimizer, criterion, device):
@@ -137,10 +140,12 @@ def aggregate_concept_dot_product_data(dataset, classes, graphs_dataset_prefix, 
                                                            concept_dot_product_flag=True)
 
     if whitening:
-        model, device, last_epoch, best_test_acc, best_neg_con_align = get_model_and_device(train_loader.dataset, len(classes),
-                                                                        whitened_graph_model_path,
-                                                                        graph_conv_type, graph_residual_connections,
-                                                                        whitening=True)
+        model, device, last_epoch, best_test_acc, best_neg_con_align = get_model_and_device(train_loader.dataset,
+                                                                                            len(classes),
+                                                                                            whitened_graph_model_path,
+                                                                                            graph_conv_type,
+                                                                                            graph_residual_connections,
+                                                                                            whitening=True)
 
     else:
         model, device, last_epoch, best_test_acc = get_model_and_device(train_loader.dataset, len(classes),
@@ -152,6 +157,76 @@ def aggregate_concept_dot_product_data(dataset, classes, graphs_dataset_prefix, 
                                                                                 whitening=whitening)
 
     return dot_product_matrix
+
+
+def aggregate_concept_axis_visualization_data(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_prefix,
+                                              concepts, concept_type, graph_conv_type, graph_residual_connections,
+                                              whitened_graph_model_path, graph_model_path, whitening=False):
+
+    train_loader, merged_test_concept_loader = get_loaders(dataset, classes, graphs_dataset_prefix,
+                                                           graph_concepts_dataset_prefix + '_' + concept_type, concepts,
+                                                           concept_concept_axis_visualization_flag=True)
+
+    if whitening:
+        model, device, last_epoch, best_test_acc, best_neg_con_align = get_model_and_device(train_loader.dataset,
+                                                                                            len(classes),
+                                                                                            whitened_graph_model_path,
+                                                                                            graph_conv_type,
+                                                                                            graph_residual_connections,
+                                                                                            whitening=True)
+
+    else:
+        model, device, last_epoch, best_test_acc = get_model_and_device(train_loader.dataset, len(classes),
+                                                                        graph_model_path, graph_conv_type,
+                                                                        graph_residual_connections)
+
+    axis_alignment = {}
+
+    for axis_idx, concept_name in enumerate(concepts):
+        # find the original numeric label for this concept
+        orig_label = classes.index(concept_name)
+
+        f1 = compute_axis_alignment_accuracy_and_f1(model, device, merged_test_concept_loader,
+                                                         orig_label=orig_label, axis_index=axis_idx, whitening=whitening)
+
+        axis_alignment[concept_name] = f1
+
+    print(axis_alignment)
+
+    # print per‐class results
+    for name, f1 in axis_alignment.items():
+        print(f"{name:15s} →  F1: {f1:.3f}")
+
+    # now compute the overall means
+    f1s = [metric for metric in axis_alignment.values()]
+
+    mean_f1 = sum(f1s) / len(f1s)
+
+    print(f"Overall axis‐alignment mean F1: {mean_f1}")
+
+
+def aggregate_top_activation_subgraphs_per_concept_data(dataset, classes, images_prefix, graphs_dataset_prefix,
+                                                        graph_concepts_dataset_prefix, concepts, concept_type,
+                                                        graph_conv_type, graph_residual_connections,
+                                                        whitened_graph_model_path):
+
+    train_loader, test_loader, train_concept_loaders, test_concept_loaders = get_loaders(dataset, classes,
+                                                                                         graphs_dataset_prefix,
+                                                                                         graph_concepts_dataset_prefix +
+                                                                                         '_' + concept_type, concepts)
+
+    model, device, last_epoch, best_test_acc, best_neg_con_align = get_model_and_device(train_loader.dataset,
+                                                                                        len(classes),
+                                                                                        whitened_graph_model_path,
+                                                                                        graph_conv_type,
+                                                                                        graph_residual_connections,
+                                                                                        whitening=True)
+
+    for axis_idx, concept_name in enumerate(concepts):
+        loader = test_concept_loaders[concept_name]
+        best_file_path, best_val = extract_top_activation_subgraphs_per_concept(model, device, loader, axis_index=axis_idx)
+        print(f"Concept `{concept_name}`  →  top subgraph: `{os.path.basename((best_file_path))}`  file path: `{best_file_path}` (activation = {best_val:.4f})")
+        draw_graph(images_prefix, subgraph_path=best_file_path)
 
 
 def whiten_graph_concepts(dataset, classes, images_prefix, graphs_dataset_prefix, graph_concepts_dataset_prefix, concepts,
@@ -201,8 +276,8 @@ def whiten_graph_concepts(dataset, classes, images_prefix, graphs_dataset_prefix
                                                                       whitened_graph_model_paths[concept_type],
                                                                       concept_type)
 
-        plot_concept_dot_product(dot_product_matrix_black, concepts, concept_type, 'black-box', dataset,
-                                 graph_conv_type, graph_residual_connections, images_prefix)
+        plot_elegant_concept_similarities(dot_product_matrix_black, concepts, concept_type, 'black-box', dataset,
+                                          graph_conv_type, graph_residual_connections, images_prefix)
 
         dot_product_matrix_white = aggregate_concept_dot_product_data(dataset, classes, graphs_dataset_prefix,
                                                                       graph_concepts_dataset_prefix,
@@ -211,8 +286,8 @@ def whiten_graph_concepts(dataset, classes, images_prefix, graphs_dataset_prefix
                                                                       whitened_graph_model_paths[concept_type],
                                                                       concept_type, whitening=True)
 
-        plot_concept_dot_product(dot_product_matrix_white, concepts, concept_type, 'white-box', dataset,
-                                 graph_conv_type, graph_residual_connections, images_prefix)
+        plot_elegant_concept_similarities(dot_product_matrix_white, concepts, concept_type, 'white-box', dataset,
+                                          graph_conv_type, graph_residual_connections, images_prefix)
 
         for negative_concept_type in negative_concept_types:
             dot_product_matrix_black = aggregate_concept_dot_product_data(dataset, classes, graphs_dataset_prefix,
@@ -222,8 +297,8 @@ def whiten_graph_concepts(dataset, classes, images_prefix, graphs_dataset_prefix
                                                                           whitened_graph_model_paths[negative_concept_type],
                                                                           negative_concept_type)
 
-            plot_concept_dot_product(dot_product_matrix_black, concepts, negative_concept_type, 'black-box', dataset,
-                                     graph_conv_type, graph_residual_connections, images_prefix)
+            plot_elegant_concept_similarities(dot_product_matrix_black, concepts, negative_concept_type, 'black-box', dataset,
+                                              graph_conv_type, graph_residual_connections, images_prefix)
 
             dot_product_matrix_white = aggregate_concept_dot_product_data(dataset, classes, graphs_dataset_prefix,
                                                                           graph_concepts_dataset_prefix,
@@ -232,5 +307,56 @@ def whiten_graph_concepts(dataset, classes, images_prefix, graphs_dataset_prefix
                                                                           whitened_graph_model_paths[negative_concept_type],
                                                                           negative_concept_type, whitening=True)
 
-            plot_concept_dot_product(dot_product_matrix_white, concepts, negative_concept_type, 'white-box', dataset,
-                                     graph_conv_type, graph_residual_connections, images_prefix)
+            plot_elegant_concept_similarities(dot_product_matrix_white, concepts, negative_concept_type, 'white-box', dataset,
+                                              graph_conv_type, graph_residual_connections, images_prefix)
+
+    elif mode == 'concept_axis_visualization':
+        print(f"Concept alignment metrics for {dataset} using GNN {graph_conv_type} residual connections {graph_residual_connections} and concept type {concept_type} for white-box model.")
+
+        aggregate_concept_axis_visualization_data(dataset, classes, graphs_dataset_prefix,
+                                                  graph_concepts_dataset_prefix,
+                                                  concepts, concept_type, graph_conv_type, graph_residual_connections,
+                                                  whitened_graph_model_paths[concept_type], graph_model_path, whitening=True)
+
+        for negative_concept_type in negative_concept_types:
+            print(f"Concept alignment metrics for {dataset} using GNN {graph_conv_type} residual connections {graph_residual_connections} and concept type {negative_concept_type} for white-box model.")
+
+            aggregate_concept_axis_visualization_data(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_prefix,
+                                                      concepts, negative_concept_type, graph_conv_type, graph_residual_connections,
+                                                      whitened_graph_model_paths[negative_concept_type], graph_model_path, whitening=True)
+
+        print(f"Concept alignment metrics for {dataset} using GNN {graph_conv_type} residual connections {graph_residual_connections} and concept type {concept_type} for black-box model.")
+
+        aggregate_concept_axis_visualization_data(dataset, classes, graphs_dataset_prefix,
+                                                  graph_concepts_dataset_prefix,
+                                                  concepts, concept_type, graph_conv_type, graph_residual_connections,
+                                                  whitened_graph_model_paths[concept_type], graph_model_path,
+                                                  whitening=False)
+
+        for negative_concept_type in negative_concept_types:
+            print(f"Concept alignment metrics for {dataset} using GNN {graph_conv_type} residual connections {graph_residual_connections} and concept type {negative_concept_type} for black-box model.")
+
+            aggregate_concept_axis_visualization_data(dataset, classes, graphs_dataset_prefix,
+                                                      graph_concepts_dataset_prefix,
+                                                      concepts, negative_concept_type, graph_conv_type,
+                                                      graph_residual_connections,
+                                                      whitened_graph_model_paths[negative_concept_type],
+                                                      graph_model_path, whitening=False)
+
+    elif mode == 'top_activation_subgraphs':
+        print(f"Extracting top activating subgraphs for {dataset} using GNN {graph_conv_type} residual connections {graph_residual_connections} and concept type {concept_type} for white-box model.")
+
+        aggregate_top_activation_subgraphs_per_concept_data(dataset, classes, images_prefix, graphs_dataset_prefix,
+                                                            graph_concepts_dataset_prefix,
+                                                            concepts, concept_type, graph_conv_type,
+                                                            graph_residual_connections,
+                                                            whitened_graph_model_paths[concept_type])
+
+        for negative_concept_type in negative_concept_types:
+            print(f"Extracting top activating subgraphs for {dataset} using GNN {graph_conv_type} residual connections {graph_residual_connections} and concept type {negative_concept_type} for white-box model.")
+
+            aggregate_top_activation_subgraphs_per_concept_data(dataset, classes, images_prefix, graphs_dataset_prefix,
+                                                                graph_concepts_dataset_prefix,
+                                                                concepts, negative_concept_type, graph_conv_type,
+                                                                graph_residual_connections,
+                                                                whitened_graph_model_paths[negative_concept_type])
