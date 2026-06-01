@@ -230,7 +230,7 @@ class IterNormRotation(torch.nn.Module):
                 c2 = 0.9
 
                 A = torch.einsum('gin,gjn->gij', G, R) - torch.einsum('gin,gjn->gij', R, G)  # GR^T - RG^T
-                I = torch.eye(size_R[2]).expand(*size_R).cuda()
+                I = torch.eye(size_R[2]).expand(*size_R).to(self.running_rot.device)
                 dF_0 = -0.5 * (A ** 2).sum()
                 # binary search for appropriate learning rate
                 cnt = 0
@@ -261,7 +261,7 @@ class IterNormRotation(torch.nn.Module):
                 R = torch.bmm(Q, R)
 
             self.running_rot = R
-            self.counter = (torch.ones(size_R[-1]) * 0.001).cuda()
+            self.counter = (torch.ones(size_R[-1]) * 0.001).to(self.running_rot.device)
 
             return F_Y_tau
 

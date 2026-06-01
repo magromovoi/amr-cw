@@ -1,3 +1,4 @@
+import os
 import re
 import copy
 import torch
@@ -17,13 +18,13 @@ vertex_embeddings = {}
 edge_embeddings = []
 
 try:
-    word_vectors = KeyedVectors.load("word2vec-google-news-300.kv")
+    word_vectors = KeyedVectors.load("data/input/word2vec/word2vec-google-news-300.kv")
 
 except FileNotFoundError:
     wv = api.load('word2vec-google-news-300')
-    wv.save("word2vec-google-news-300.kv")
+    wv.save("data/input/word2vec/word2vec-google-news-300.kv")
 
-    word_vectors = KeyedVectors.load("word2vec-google-news-300.kv")
+    word_vectors = KeyedVectors.load("data/input/word2vec/word2vec-google-news-300.kv")
 
 string_pattern = "([A-Z]|[a-z])*"
 
@@ -32,7 +33,7 @@ def load_vertex_embeddings():
     global vertex_embeddings
 
     try:
-        with open("vertex_embeddings.pkl", "rb") as f:
+        with open("data/output/vertex_embeddings.pkl", "rb") as f:
             vertex_embeddings = pickle.load(f)
     except FileNotFoundError:
         vertex_embeddings = {}
@@ -59,7 +60,8 @@ def find_vertex_embedding(vertex_label):
 def save_embeddings():
     global vertex_embeddings
 
-    with open("vertex_embeddings.pkl", "wb") as f:
+    os.makedirs("data/output", exist_ok=True)
+    with open("data/output/vertex_embeddings.pkl", "wb") as f:
         pickle.dump(vertex_embeddings, f)
 
 

@@ -44,5 +44,6 @@ def construct_text_indices(dataset, classes, raw_texts_prefix, raw_texts_csv_pre
     texts_df_file_name = f'{dataset}_raw_texts.csv'
     texts_df_file_path = raw_texts_csv_prefix + '/' + texts_df_file_name
 
+    os.makedirs(raw_texts_csv_prefix, exist_ok=True)
     texts_df.to_csv(texts_df_file_name, index=False)
     shutil.move(texts_df_file_name, texts_df_file_path)

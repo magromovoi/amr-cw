@@ -3,9 +3,9 @@ import matplotlib.image as mpimg
 
 # Filepaths to your saved subfigure images
 image_files = [
-    "images/bbcsport_cricket_gcn_conv_False.png",
-    "images/bbcsport_football_gcn_conv_False.png",
-    "images/bbcsport_tennis_gcn_conv_False.png"
+    "data/output/images/bbcsport_cricket_gcn_conv_False.png",
+    "data/output/images/bbcsport_football_gcn_conv_False.png",
+    "data/output/images/bbcsport_tennis_gcn_conv_False.png"
 ]
 
 # Create a 2-row, 2-column grid with per-subplot size = 6×6
@@ -25,5 +25,5 @@ for i, ax in enumerate(axes):
 plt.subplots_adjust(hspace=0.05, wspace=0.05)
 
 # Save the final figure
-plt.savefig("images/parak7.png", dpi=600, bbox_inches='tight', pad_inches=0.1)
+plt.savefig("data/output/images/parak7.png", dpi=600, bbox_inches='tight', pad_inches=0.1)
 plt.close()

@@ -1,3 +1,4 @@
+import os
 import json
 import torch
 import shutil
@@ -58,7 +59,7 @@ def get_model_and_device(dataset, num_classes, graph_model_path=None, graph_conv
         if whitening and '_whitened_' in graph_model_path:
             model.replace_norm_layers(300)
 
-        checkpoint = torch.load(graph_model_path)
+        checkpoint = torch.load(graph_model_path, map_location='cpu')
         model.load_state_dict(checkpoint['model_state_dict'])
 
         if whitening and '_whitened_' not in graph_model_path:
@@ -81,7 +82,7 @@ def get_model_and_device(dataset, num_classes, graph_model_path=None, graph_conv
         best_test_acc = 0
         best_neg_con_align = None
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device('mps' if torch.backends.mps.is_available() else 'cuda:0' if torch.cuda.is_available() else 'cpu')
 
     print(model)
 
@@ -160,12 +161,17 @@ def get_loaders(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_
 
 def get_optimizer_and_criterion(model, model_path=None):
 
-    model.cuda()
+    device = torch.device('mps' if torch.backends.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
 
     try:
-        checkpoint = torch.load(model_path)
+        checkpoint = torch.load(model_path, map_location='cpu')
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        for state in optimizer.state.values():
+            for k, v in state.items():
+                if isinstance(v, torch.Tensor):
+                    state[k] = v.to(device)
 
     except FileNotFoundError:
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
@@ -271,6 +277,7 @@ def get_graph_embeddings(dataset, classes, graphs_dataset_prefix, embeddings_pre
     with open(embeddings_file_name, 'w') as f:
         json.dump(d, f)
 
+    os.makedirs(embeddings_prefix, exist_ok=True)
     embeddings_file_path = embeddings_prefix + '/' + embeddings_file_name
     shutil.move(embeddings_file_name, embeddings_file_path)
 

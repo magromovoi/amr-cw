@@ -34,9 +34,4 @@ bbcsport_target_class: 'tennis'
 min_support: 35
 max_penalty: 23
 
-diversity_method: 'mmr'
-diversity_lambda: 0.5
-diversity_min_k: 30
-diversity_min_k_proportional: 0.5
-diversity_tau: 0.0
-diversity_skip_below: 0
+diversity_method: 'none'

@@ -1,0 +1,21 @@
+[project]
+name = "cw"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "gensim",
+    "matplotlib",
+    "networkx",
+    "numpy",
+    "pandas",
+    "pyyaml",
+    "scikit-learn",
+    "scipy",
+    "seaborn",
+    "torch",
+    "torch-geometric",
+    "torchaudio",
+    "torchvision",
+    "transformers",
+]
