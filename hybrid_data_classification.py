@@ -1,3 +1,4 @@
+import os
 import json
 import torch
 import shutil
@@ -214,6 +215,7 @@ def get_hybrid_embeddings(dataset, embeddings_prefix, graph_conv_type, graph_res
     with open(hybrid_embeddings_file_name, 'w') as f:
         json.dump(d, f)
 
+    os.makedirs(embeddings_prefix, exist_ok=True)
     hybrid_embeddings_file_path = embeddings_prefix + '/' + hybrid_embeddings_file_name
     shutil.move(hybrid_embeddings_file_name, hybrid_embeddings_file_path)
 

@@ -37,3 +37,27 @@ To change the GNN model and toggle residual connections, please modify the `grap
 Additionally, the target classes for computing concept gradient importances can be adjusted:
 - For the **10 Newsgroups** dataset: modify the `ten_newsgroups_target_class` field.
 - For the **BBC Sport** dataset: modify the `bbcsport_target_class` field.
+
+### Multi-seed runs
+
+`run_multiseed.sh` runs the full pipeline on BBC Sport: concept construction, concept-whitening training, then doc-CAP evaluation. It repeats this for the baseline and exp configs across seeds 42, 123, 456, 789, and 1024. From the repository root:
+
+```
+./run_multiseed.sh
+```
+
+Each run writes to `data/output/runs/bbcsport_<config>_seed<N>/`, containing its own `log.txt`, `checkpoints/`, `config.yaml`, and `run_meta.json`.
+
+To run one stage at a time for a single seed and config:
+
+```
+RUN=data/output/runs/bbcsport_exp_seed42
+
+.venv/bin/python main.py --seed 42 --config config.yaml --dataset bbcsport --operation graph_concept_construction --concept_type weighted_frequent_subgraphs --run_dir "$RUN"
+
+.venv/bin/python main.py --seed 42 --config config.yaml --dataset bbcsport --operation graph_concept_whitening --mode train --concept_type weighted_frequent_subgraphs --run_dir "$RUN"
+
+.venv/bin/python main.py --seed 42 --config config.yaml --dataset bbcsport --operation evaluation --mode doc_cap --concept_type weighted_frequent_subgraphs --run_dir "$RUN"
+```
+
+Use `--config config_baseline.yaml` for the baseline.

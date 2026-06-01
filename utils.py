@@ -1,3 +1,4 @@
+import os
 import re
 import torch
 from pathlib import Path
@@ -25,4 +26,5 @@ def human_sort(file_names):
 
 
 def save_checkpoint(state, checkpoint_prefix=None):
+    os.makedirs(os.path.dirname(checkpoint_prefix), exist_ok=True)
     torch.save(state, checkpoint_prefix)

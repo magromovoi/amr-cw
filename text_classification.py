@@ -1,3 +1,4 @@
+import os
 import json
 import torch
 import shutil
@@ -200,6 +201,7 @@ def get_text_embeddings(dataset, raw_texts_csv_prefix, embeddings_prefix, text_m
     with open(embeddings_file_name, 'w') as f:
         json.dump(d, f)
 
+    os.makedirs(embeddings_prefix, exist_ok=True)
     embeddings_file_path = embeddings_prefix + '/' + embeddings_file_name
     shutil.move(embeddings_file_name, embeddings_file_path)
 

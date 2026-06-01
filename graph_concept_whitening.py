@@ -13,6 +13,7 @@ from graph_classification import (save_checkpoint, generate_classification_repor
 def train_concept_whitening(model, loader, concept_loaders, optimizer, criterion, device):
     model = model.to(device)
     model.train()
+    neg_con_align = 0.0
 
     for graph_batch_index, graph_batch in enumerate(loader):
         if (graph_batch_index + 1) % 3 == 0:
@@ -129,6 +130,36 @@ def aggregate_concept_gradient_importance_data(dataset, classes, graphs_dataset_
                                                        device=device)
 
     return concepts_importances
+
+
+def aggregate_doc_cap_data(dataset, classes, graphs_dataset_prefix, concepts, graph_conv_type,
+                           graph_residual_connections, whitened_graph_model_path):
+
+    train_loader, test_loader = get_loaders(dataset, classes, graphs_dataset_prefix)
+
+    model, device, last_epoch, best_test_acc, best_neg_con_align = get_model_and_device(
+        train_loader.dataset, len(classes), whitened_graph_model_path,
+        graph_conv_type, graph_residual_connections, whitening=True)
+
+    axis_alignment = {}
+
+    for axis_idx, concept_name in enumerate(concepts):
+        orig_label = classes.index(concept_name)
+
+        f1 = compute_axis_alignment_accuracy_and_f1(model, device, test_loader,
+                                                    orig_label=orig_label, axis_index=axis_idx, whitening=True)
+
+        axis_alignment[concept_name] = f1
+
+    print(axis_alignment)
+
+    for name, f1 in axis_alignment.items():
+        print(f"{name:15s} -  F1: {f1:.3f}")
+
+    f1s = list(axis_alignment.values())
+    mean_f1 = sum(f1s) / len(f1s)
+
+    print(f"Overall doc-CAP mean F1: {mean_f1}")
 
 
 def aggregate_concept_dot_product_data(dataset, classes, graphs_dataset_prefix, graph_concepts_dataset_prefix,
@@ -342,6 +373,12 @@ def whiten_graph_concepts(dataset, classes, images_prefix, graphs_dataset_prefix
                                                       graph_residual_connections,
                                                       whitened_graph_model_paths[negative_concept_type],
                                                       graph_model_path, whitening=False)
+
+    elif mode == 'doc_cap':
+        print(f"Document-level CAP for {dataset} using GNN {graph_conv_type} residual connections {graph_residual_connections} and concept type {concept_type}.")
+
+        aggregate_doc_cap_data(dataset, classes, graphs_dataset_prefix, concepts, graph_conv_type,
+                               graph_residual_connections, whitened_graph_model_paths[concept_type])
 
     elif mode == 'top_activation_subgraphs':
         print(f"Extracting top activating subgraphs for {dataset} using GNN {graph_conv_type} residual connections {graph_residual_connections} and concept type {concept_type} for white-box model.")

@@ -82,10 +82,10 @@ def concept_gradient_importance(model, test_loader, classes, concepts, class_ind
     concept_importance_per_class = [None] * len(classes)
 
     for graph_batch_index, graph_batch in enumerate(test_loader):
-        x_var = torch.autograd.Variable(graph_batch.x).cuda()
-        edge_index_var = torch.autograd.Variable(graph_batch.edge_index).cuda()
-        batch_var = torch.autograd.Variable(graph_batch.batch).cuda()
-        target_var = torch.autograd.Variable(graph_batch.y).cuda()
+        x_var = torch.autograd.Variable(graph_batch.x).to(device)
+        edge_index_var = torch.autograd.Variable(graph_batch.edge_index).to(device)
+        batch_var = torch.autograd.Variable(graph_batch.batch).to(device)
+        target_var = torch.autograd.Variable(graph_batch.y).to(device)
 
         output = model(x_var, edge_index_var, batch_var)
         model.zero_grad()
@@ -319,9 +319,9 @@ def intra_concept_dot_product_vs_inter_concept_dot_product(model, concept_loader
             print(c_idx, concept)
 
             for j, graph_batch in enumerate(concept_loader):
-                x_var = torch.autograd.Variable(graph_batch.x).cuda()
-                edge_index_var = torch.autograd.Variable(graph_batch.edge_index).cuda()
-                batch_var = torch.autograd.Variable(graph_batch.batch).cuda()
+                x_var = torch.autograd.Variable(graph_batch.x).to(device)
+                edge_index_var = torch.autograd.Variable(graph_batch.edge_index).to(device)
+                batch_var = torch.autograd.Variable(graph_batch.batch).to(device)
                 labels = graph_batch.y.cpu().numpy().flatten().astype(np.int32).tolist()
 
                 outputs = []

@@ -1,0 +1,7 @@
+data/
+checkpoints/
+images/
+__pycache__/
+.*
+!.gitignore
+!.python-version

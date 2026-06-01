@@ -3,11 +3,11 @@ import matplotlib.image as mpimg
 
 # Filepaths to your saved subfigure images
 image_files = [
-    "images/ten_newsgroups_entertainment_gcn_conv_False.png",
-    "images/ten_newsgroups_graphics_gcn_conv_False.png",
-    "images/ten_newsgroups_historical_gcn_conv_False.png",
-    "images/ten_newsgroups_politics_gcn_conv_False.png",
-    "images/ten_newsgroups_sport_gcn_conv_False.png"
+    "data/output/images/ten_newsgroups_entertainment_gcn_conv_False.png",
+    "data/output/images/ten_newsgroups_graphics_gcn_conv_False.png",
+    "data/output/images/ten_newsgroups_historical_gcn_conv_False.png",
+    "data/output/images/ten_newsgroups_politics_gcn_conv_False.png",
+    "data/output/images/ten_newsgroups_sport_gcn_conv_False.png"
 ]
 
 # Create a 3-row, 2-column grid
@@ -24,5 +24,5 @@ for i, ax in enumerate(axes):
 
 # Save the final grid image
 plt.subplots_adjust(hspace=0.05, wspace=0.05)
-plt.savefig("images/parak5.png", dpi=600, bbox_inches='tight', pad_inches=0.1)
+plt.savefig("data/output/images/parak5.png", dpi=600, bbox_inches='tight', pad_inches=0.1)
 plt.close()
