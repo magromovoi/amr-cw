@@ -1,17 +1,22 @@
 ten_newsgroups_classes: ['business', 'entertainment', 'food', 'graphics', 'historical', 'medical', 'politics', 'space', 'sport', 'technologie']
 bbcsport_classes: ['athletics', 'cricket', 'football', 'rugby', 'tennis']
+synthetic_classes: ['coercive', 'deceptive', 'benign']
 
 ten_newsgroups_raw_texts_prefix: 'data/input/raw_texts/ten_newsgroups_texts'
 bbcsport_raw_texts_prefix: 'data/input/raw_texts/bbcsport_texts'
+synthetic_raw_texts_prefix: 'data/output/synthetic_corpus/raw_texts/synthetic_texts'
 
 ten_newsgroups_graphs_dataset_prefix: 'data/input/graphs_dataset/ten_newsgroups_graphs_dataset'
 bbcsport_graphs_dataset_prefix: 'data/input/graphs_dataset/bbcsport_graphs_dataset'
+synthetic_graphs_dataset_prefix: 'data/output/synthetic_corpus/graphs_dataset/synthetic_graphs_dataset'
 
 ten_newsgroups_concept_pickles_prefix: 'data/input/concept_pickles/ten_newsgroups_graph_concepts_dataset'
 bbcsport_concept_pickles_prefix: 'data/input/concept_pickles/bbcsport_graph_concepts_dataset'
+synthetic_concept_pickles_prefix: 'data/output/synthetic_corpus/mined_concepts'
 
 ten_newsgroups_graph_concepts_dataset_prefix: 'data/output/concept_datasets/ten_newsgroups_graph_concepts_dataset'
 bbcsport_graph_concepts_dataset_prefix: 'data/output/concept_datasets/bbcsport_graph_concepts_dataset'
+synthetic_graph_concepts_dataset_prefix: 'data/output/concept_datasets/synthetic_graph_concepts_dataset'
 
 raw_texts_csv_prefix: 'data/output/csvs'
 
@@ -31,6 +36,9 @@ ten_newsgroups_target_class: 'sport'
 bbcsport_graph_concepts: ['cricket', 'football', 'tennis']
 bbcsport_target_class: 'tennis'
 
+synthetic_graph_concepts: ['coercive', 'deceptive', 'benign']
+synthetic_target_class: 'coercive'
+
 min_support: 35
 max_penalty: 23
 
@@ -40,3 +48,4 @@ diversity_min_k: 30
 diversity_min_k_proportional: 0.5
 diversity_tau: 0.0
 diversity_skip_below: 0
+diversity_sim: 'jaccard'
