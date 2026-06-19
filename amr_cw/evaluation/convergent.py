@@ -1,5 +1,6 @@
 import json
 import argparse
+from time import perf_counter
 
 from amr_cw.evaluation.core import (
     load_pool, load_concept_techniques, pool_to_candidates, apply_rule, distinct_techniques,
@@ -13,14 +14,16 @@ METHODS = ['quality_only', 'facility_location', 'set_cover', 'dpp']
 def run(classes, pickles_prefix, concept_type, concept_techniques, k, seeds):
     per_method = {}
     for method in METHODS:
-        techniques, covs, sizes, redund = [], [], [], []
+        techniques, covs, sizes, redund, secs = [], [], [], [], []
         for class_name in classes:
             pool = load_pool(pickles_prefix, concept_type, class_name)
             cands = pool_to_candidates(pool)
             true_techniques = true_techniques_for_class(concept_techniques, [c['id'] for c in pool])
             full_cov = coverage(cands)
             for seed in seeds:
+                t0 = perf_counter()
                 sel = apply_rule(cands, method, k, seed)
+                secs.append(perf_counter() - t0)
                 techniques.append(distinct_techniques(sel, concept_techniques, true_techniques))
                 covs.append(coverage(sel) / full_cov if full_cov else 0.0)
                 sizes.append(len(sel))
@@ -30,6 +33,7 @@ def run(classes, pickles_prefix, concept_type, concept_techniques, k, seeds):
             'mean_coverage_retained': sum(covs) / len(covs),
             'mean_selected_size': sum(sizes) / len(sizes),
             'mean_pairwise_jaccard': sum(redund) / len(redund),
+            'mean_select_seconds': sum(secs) / len(secs),
         }
     baseline = per_method['quality_only']['mean_techniques']
     cross_method = {m: per_method[m]['mean_techniques'] > baseline
