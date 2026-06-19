@@ -1,6 +1,7 @@
 import os
 import json
 import argparse
+from time import perf_counter
 
 import numpy as np
 
@@ -72,18 +73,26 @@ def run(run_dir, dataset, classes, concepts, graphs_dataset_prefix,
         train_loader.dataset, len(classes), whitened, whitening=True)
 
     per_rule = {rule: [] for rule in rules}
+    select_secs = {rule: [] for rule in rules}
+    activation_secs = []
     for class_name in concepts:
+        t0 = perf_counter()
         activations = collect_concept_activations(model, device, train_concept_loaders[class_name])
+        activation_secs.append(perf_counter() - t0)
         instances = {name: [vec] for name, vec in activations.items()}
         pool_cands = pool_to_candidates(load_pool(pickles_prefix, concept_type, class_name))
         cands = [c for c in pool_cands if c['graph_concept_name'] in instances]
         for rule in rules:
+            t0 = perf_counter()
             selected = select_by_rule([dict(c) for c in cands], rule, k, 0, activations)
+            select_secs[rule].append(perf_counter() - t0)
             per_rule[rule].append(selected_mean_off_diagonal(selected, instances))
 
     result = {'k': k, 'concepts': list(concepts),
               'mean_off_diagonal_Q': {rule: float(np.mean(vals)) for rule, vals in per_rule.items()},
-              'per_class': {rule: [float(v) for v in vals] for rule, vals in per_rule.items()}}
+              'per_class': {rule: [float(v) for v in vals] for rule, vals in per_rule.items()},
+              'mean_select_seconds': {rule: float(np.mean(vals)) for rule, vals in select_secs.items()},
+              'mean_activation_collect_seconds': float(np.mean(activation_secs))}
     baseline = np.asarray(per_rule['quality_only'])
     for rule in rules:
         if rule == 'quality_only':
